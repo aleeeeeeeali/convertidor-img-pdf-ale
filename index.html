@@ -4,34 +4,220 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Convertidor de Imagen a PDF</title>
+  <!-- Librería jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Fuente Google Fonts (Poppins) para mejor tipografía -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 40px; background-color: #f4f4f9; }
-    .card { background: white; padding: 30px; border-radius: 10px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    input[type="file"] { margin: 20px 0; }
-    button { background-color: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
-    button:hover { background-color: #0056b3; }
+    :root {
+      --primary-blue: #1e56a0;
+      --primary-blue-hover: #163172;
+      --accent-brown: #6f4e37;
+      --light-brown: #d7ccc8;
+      --bg-cream: #fbf9f6;
+      --card-bg: #ffffff;
+      --text-dark: #3e2723;
+      --text-muted: #8d6e63;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-cream);
+      color: var(--text-dark);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 40px 30px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(111, 78, 55, 0.12);
+      border: 1px solid rgba(111, 78, 55, 0.1);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      color: var(--text-dark);
+      margin-bottom: 8px;
+    }
+
+    p.subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 25px;
+    }
+
+    /* Área interactiva para subir imagen */
+    .drop-zone {
+      border: 2px dashed var(--accent-brown);
+      border-radius: 12px;
+      padding: 30px 20px;
+      background-color: rgba(215, 204, 200, 0.15);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      background-color: rgba(30, 86, 160, 0.05);
+      border-color: var(--primary-blue);
+    }
+
+    .drop-zone input[type="file"] {
+      display: none;
+    }
+
+    .drop-zone-icon {
+      font-size: 40px;
+      color: var(--accent-brown);
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .drop-zone-text {
+      font-size: 0.95rem;
+      color: var(--text-dark);
+      font-weight: 500;
+    }
+
+    .drop-zone-text span {
+      color: var(--primary-blue);
+      text-decoration: underline;
+    }
+
+    /* Vista previa */
+    .preview-container {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .preview-container img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      border: 2px solid var(--light-brown);
+    }
+
+    /* Botón principal */
+    .btn-convert {
+      margin-top: 25px;
+      width: 100%;
+      background-color: var(--primary-blue);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      box-shadow: 0 4px 12px rgba(30, 86, 160, 0.3);
+    }
+
+    .btn-convert:hover {
+      background-color: var(--primary-blue-hover);
+    }
+
+    .btn-convert:active {
+      transform: scale(0.98);
+    }
+
+    .btn-convert:disabled {
+      background-color: #b0bec5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Convertir Imagen a PDF</h2>
-    <input type="file" id="imageInput" accept="image/png, image/jpeg">
-    <br>
-    <button onclick="convertirAPDF()">Descargar PDF</button>
+
+  <div class="container">
+    <h1>Convertir Imagen a PDF</h1>
+    <p class="subtitle">Transforma tus archivos JPG o PNG al instante</p>
+
+    <!-- Zona de carga estilo Drag & Drop -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('imageInput').click()">
+      <span class="drop-zone-icon">🖼️</span>
+      <p class="drop-zone-text">Arrastra tu imagen aquí o <span>examina</span></p>
+      <input type="file" id="imageInput" accept="image/png, image/jpeg">
+    </div>
+
+    <!-- Vista previa de la imagen cargada -->
+    <div class="preview-container" id="previewContainer">
+      <img id="imagePreview" src="" alt="Vista previa">
+    </div>
+
+    <!-- Botón de acción -->
+    <button class="btn-convert" id="convertBtn" onclick="convertirAPDF()" disabled>
+      Descargar en PDF
+    </button>
   </div>
 
   <script>
-    async function convertirAPDF() {
-      const input = document.getElementById('imageInput');
-      if (input.files.length === 0) {
-        alert('Por favor selecciona una imagen primero.');
-        return;
+    const imageInput = document.getElementById('imageInput');
+    const dropZone = document.getElementById('dropZone');
+    const previewContainer = document.getElementById('previewContainer');
+    const imagePreview = document.getElementById('imagePreview');
+    const convertBtn = document.getElementById('convertBtn');
+    let fileCargado = null;
+
+    // Manejar selección de archivo mediante el input
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) mostrarVistaPrevia(file);
+    });
+
+    // Soporte para Arrastrar y Soltar (Drag and Drop)
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        mostrarVistaPrevia(file);
       }
+    });
 
-      const file = input.files[0];
+    // Función para mostrar la imagen seleccionada y activar el botón
+    function mostrarVistaPrevia(file) {
+      fileCargado = file;
       const reader = new FileReader();
+      reader.onload = function(e) {
+        imagePreview.src = e.target.result;
+        previewContainer.style.display = 'block';
+        convertBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
 
+    // Conversión a PDF mediante jsPDF
+    function convertirAPDF() {
+      if (!fileCargado) return;
+
+      const reader = new FileReader();
       reader.onload = function(e) {
         const img = new Image();
         img.src = e.target.result;
@@ -45,12 +231,13 @@
           });
 
           pdf.addImage(img, 'JPEG', 0, 0, img.width, img.height);
-          pdf.save('imagen-convertida.pdf');
+          pdf.save('documento-convertido.pdf');
         };
       };
 
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileCargado);
     }
   </script>
+
 </body>
 </html>
